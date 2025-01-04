@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -24,6 +25,30 @@ func InitDB() {
 	DB.SetMaxIdleConns(5)
 
 	createTables(DB) //call function to execute create table
+}
+
+func UpdateUserPassword(email, newPassword string) error {
+	// Prepare the query to update the password
+	query := "UPDATE users SET password = ? WHERE email = ?"
+	_, err := DB.Exec(query, newPassword, email)
+	if err != nil {
+		return fmt.Errorf("failed to update password: %v", err)
+	}
+	fmt.Println("Password updated successfully")
+	return nil
+}
+
+func GetUserPassword(email string) (string, error) {
+	query := "SELECT password FROM users WHERE email = ?"
+	var password string
+	err := DB.QueryRow(query, email).Scan(&password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("no user found with email %s", email)
+		}
+		return "", fmt.Errorf("failed to query password: %v", err)
+	}
+	return password, nil
 }
 
 //create tables for the event
@@ -58,5 +83,19 @@ func createTables(db *sql.DB) {
 	_, err = db.Exec(createEventsTable)
 	if err != nil {
 		panic("Could not create events table " + err.Error())
+	}
+
+	createRegistrationsTable := `
+	 CREATE TABLE IF NOT EXISTS registrations (
+	 id INTEGER PRIMARY KEY AUTOINCREMENT,
+	 event_id INTEGER,
+	 user_id INTEGER,
+	 FOREIGN KEY(event_id) REFERENCES events(id),
+	 FOREIGN KEY(user_id) REFERENCES users(id)
+	 )
+	 `
+	_, err = db.Exec(createRegistrationsTable)
+	if err != nil {
+		panic("Could not create registrations table")
 	}
 }

@@ -12,13 +12,13 @@ type Event struct {
 	Description string    `binding:"required"`
 	Location    string    `binding:"required"`
 	DateTime    time.Time `binding:"required"`
-	UserID      int
+	UserID      int64
 }
 
 // Save function that will save the events to a database
 var events = []Event{}
 
-func (e Event) Save() error {
+func (e *Event) Save() error {
 	// later add it to a database
 	query := `
 	INSERT INTO events(name, description, location, dateTime, user_id) 
@@ -32,7 +32,7 @@ func (e Event) Save() error {
 	if err != nil {
 		return err
 	}
-	id, err := result.LastInsertId() // to get the ID on the eventthat was inserted
+	id, err := result.LastInsertId() // to get the ID on the event that was inserted in the database
 	e.ID = id
 	return err
 }
@@ -92,5 +92,27 @@ func (event Event) Delete() error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(event.ID)
+	return err
+}
+
+func (e Event) Register(userId int64) error {
+	query := "INSERT INTO registrations(event_id, user_id) VALUES (?, ?)"
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(e.ID, userId)
+	return err
+}
+
+func (e Event) CancelRegistration(userId int64) error {
+	query := "DELETE FROM registrations WHERE event_id = ? AND user_id = ?"
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(e.ID, userId)
 	return err
 }
