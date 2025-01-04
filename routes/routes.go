@@ -8,6 +8,7 @@ import (
 func RegisterRoutes(server *gin.Engine) {
 	server.GET("/events", getEvents)
 	server.GET("/events/:id", getEvent) //setting up a dynamic path handler
+	server.GET("/registrations", getRegistrations)
 
 	authenticated := server.Group("/")
 	authenticated.Use(middlewares.Authenticate) //to protect the group
